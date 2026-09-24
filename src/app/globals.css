@@ -1,0 +1,143 @@
+/* Copied verbatim from switch-tracker.html.
+ * Only change: the two font families are now next/font CSS variables
+ * (--font-bricolage, --font-figtree) set on <html> in layout.tsx. */
+
+:root{
+  --bg:#F2F4F7; --surface:#FFFFFF; --ink:#16233A; --muted:#5B6678; --line:#D5DBE3;
+  --accent:#D98A1E; --accent-soft:#F6E3C4; --done:#1F6F6A; --done-soft:#D6ECE9; --warn:#B4442E;
+  --heat0:#E3E7ED; --heat1:#F3D39E; --heat2:#E8AE55; --heat3:#D98A1E; --heat4:#9C5B08;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1726; --surface:#17223A; --ink:#E6EAF1; --muted:#9AA6B8; --line:#2A3857;
+    --accent:#F0A842; --accent-soft:#3A3020; --done:#4FB3A9; --done-soft:#1C3A3B; --warn:#E3765F;
+    --heat0:#223052; --heat1:#5A4520; --heat2:#8C6524; --heat3:#C98A2A; --heat4:#F0A842;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1726; --surface:#17223A; --ink:#E6EAF1; --muted:#9AA6B8; --line:#2A3857;
+  --accent:#F0A842; --accent-soft:#3A3020; --done:#4FB3A9; --done-soft:#1C3A3B; --warn:#E3765F;
+  --heat0:#223052; --heat1:#5A4520; --heat2:#8C6524; --heat3:#C98A2A; --heat4:#F0A842;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 var(--font-figtree),system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:var(--font-bricolage),var(--font-figtree),system-ui,sans-serif;line-height:1.15;margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1040px;margin:0 auto;padding:28px 20px 64px}
+
+/* Hero: the route */
+.hero{display:grid;gap:18px;margin-bottom:22px}
+.hero-top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+.hero h1{font-size:clamp(1.9rem,4.5vw,2.8rem);font-weight:800;letter-spacing:-.02em}
+.hero p{margin:4px 0 0;color:var(--muted)}
+.sync{font-size:.85rem;color:var(--muted);display:flex;align-items:center;gap:8px}
+.sync::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.sync.ok::before{background:var(--done)}
+.sync.local::before{background:var(--accent)}
+.sync.err::before{background:var(--warn)}
+
+.route{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px 22px 18px;overflow-x:auto}
+.route-inner{position:relative;min-width:640px;height:118px}
+.track{position:absolute;left:0;right:0;top:46px;height:6px;border-radius:3px;background:var(--line)}
+.track-fill{position:absolute;left:0;top:46px;height:6px;border-radius:3px;background:var(--accent)}
+.node{position:absolute;top:38px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;width:110px;cursor:pointer;background:none;border:0;padding:0}
+.node .dot{width:22px;height:22px;border-radius:50%;background:var(--surface);border:3px solid var(--line);display:grid;place-items:center;transition:background .2s,border-color .2s}
+.node.done .dot{background:var(--done);border-color:var(--done)}
+.node.done .dot::after{content:"";width:7px;height:4px;border:2px solid #fff;border-top:0;border-right:0;transform:rotate(-45deg) translate(1px,-1px)}
+.node.late .dot{border-color:var(--warn)}
+.node .lbl{margin-top:8px;font-size:.75rem;line-height:1.25;text-align:center;color:var(--muted)}
+.node .lbl b{display:block;color:var(--ink);font-weight:600;font-size:.8rem}
+.node:nth-of-type(even) .lbl{order:-1;margin:0 0 8px}
+.node:nth-of-type(even){top:-8px}
+.today{position:absolute;top:30px;bottom:0;width:0;border-left:2px dashed var(--ink);opacity:.5}
+.today span{position:absolute;bottom:0;left:6px;font-size:.72rem;white-space:nowrap;color:var(--ink);font-weight:600}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px;overflow-x:auto;margin-bottom:22px;position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
+.tab{flex:1 0 auto;border:0;background:none;padding:9px 14px;border-radius:9px;cursor:pointer;color:var(--muted);font-weight:600;white-space:nowrap}
+.tab[aria-selected="true"]{background:var(--ink);color:var(--bg)}
+
+.grid{display:grid;gap:16px}
+.cols-3{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.cols-2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px}
+.panel h2{font-size:1.2rem;font-weight:700;margin-bottom:10px}
+.panel h3{font-size:1rem;font-weight:700;margin:14px 0 6px}
+.sub{color:var(--muted);font-size:.9rem;margin:0 0 12px}
+
+.stat .n{font-family:var(--font-bricolage),sans-serif;font-size:2.4rem;font-weight:800;letter-spacing:-.02em;line-height:1}
+.stat .n small{font-size:1rem;color:var(--muted);font-weight:500}
+.stat .k{color:var(--muted);font-size:.9rem;margin-top:6px}
+.bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin-top:12px}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:4px}
+.bar.teal i{background:var(--done)}
+
+.checks{list-style:none;margin:0;padding:0}
+.checks li{border-top:1px solid var(--line)}
+.checks li:first-child{border-top:0}
+.checks label{display:flex;gap:10px;align-items:flex-start;padding:8px 2px;cursor:pointer}
+.checks input{appearance:none;flex:0 0 18px;width:18px;height:18px;margin-top:3px;border:2px solid var(--muted);border-radius:5px;display:grid;place-items:center;cursor:pointer;background:var(--surface)}
+.checks input:checked{background:var(--done);border-color:var(--done)}
+.checks input:checked::after{content:"";width:8px;height:4px;border:2px solid #fff;border-top:0;border-right:0;transform:rotate(-45deg) translate(1px,-1px)}
+.checks input:checked + span{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--line)}
+.checks a{color:inherit}
+.tag{display:inline-block;font-size:.72rem;font-weight:600;padding:1px 7px;border-radius:999px;margin-left:6px;vertical-align:1px}
+.tag.E{background:var(--done-soft);color:var(--done)}
+.tag.M{background:var(--accent-soft);color:var(--accent)}
+.tag.H{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+
+.week{border:1px solid var(--line);border-radius:12px;background:var(--surface);margin-bottom:12px;overflow:hidden}
+.week summary{list-style:none;cursor:pointer;display:flex;gap:14px;align-items:center;padding:14px 18px}
+.week summary::-webkit-details-marker{display:none}
+.week .wk{font-family:var(--font-bricolage),sans-serif;font-weight:800;font-size:1.05rem;min-width:84px}
+.week .dates{color:var(--muted);font-size:.88rem;flex:1}
+.week .cnt{font-size:.85rem;font-weight:600;color:var(--muted)}
+.week.current{border-color:var(--accent);box-shadow:inset 4px 0 0 var(--accent)}
+.week.complete .cnt{color:var(--done)}
+.week .body{padding:0 18px 12px}
+.phase-h{font-size:.95rem;color:var(--muted);font-weight:600;margin:22px 0 10px}
+
+.counter{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:600}
+.btn:hover{border-color:var(--ink)}
+.btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.btn.small{padding:4px 10px;font-size:.85rem}
+.btn.ghost{border-color:transparent;color:var(--muted)}
+.field{display:grid;gap:4px;font-size:.85rem;color:var(--muted)}
+.field input,.field select,.field textarea{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:8px 10px;color:var(--ink);font-size:.95rem;width:100%}
+.form{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));align-items:end}
+
+.heat{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,13px);gap:3px;overflow-x:auto;padding-bottom:4px}
+.heat i{width:13px;height:13px;border-radius:3px;background:var(--heat0)}
+.heat i[data-l="1"]{background:var(--heat1)}.heat i[data-l="2"]{background:var(--heat2)}.heat i[data-l="3"]{background:var(--heat3)}.heat i[data-l="4"]{background:var(--heat4)}
+.heat i.fut{opacity:.35}
+
+.pipeline{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.pill{border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:.85rem}
+.pill b{margin-left:4px}
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.92rem}
+th,td{text-align:left;padding:9px 8px;border-top:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:.82rem;border-top:0}
+td select{border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:4px 6px}
+.empty{color:var(--muted);padding:18px 0;text-align:center}
+.stage-Offer{color:var(--done);font-weight:600}
+.stage-Rejected{color:var(--muted)}
+.hint{font-size:.85rem;color:var(--muted)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+
+/* --- Added for accounts (not in the original single-file app) ---------------
+   The original had no sign-in, so these four rules are the only CSS additions.
+   They reuse the existing colour tokens so light and dark mode need no extra
+   work, and they sit beside .sync in the header's right-hand cluster. */
+.account{display:flex;align-items:center;gap:8px}
+.account .avatar{border-radius:50%;display:block}
+.account-name{font-size:.85rem;color:var(--muted)}
+.header-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px}

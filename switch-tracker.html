@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Switch Tracker: 10 LPA+ by January</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F2F4F7; --surface:#FFFFFF; --ink:#16233A; --muted:#5B6678; --line:#D5DBE3;
+  --accent:#D98A1E; --accent-soft:#F6E3C4; --done:#1F6F6A; --done-soft:#D6ECE9; --warn:#B4442E;
+  --heat0:#E3E7ED; --heat1:#F3D39E; --heat2:#E8AE55; --heat3:#D98A1E; --heat4:#9C5B08;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1726; --surface:#17223A; --ink:#E6EAF1; --muted:#9AA6B8; --line:#2A3857;
+    --accent:#F0A842; --accent-soft:#3A3020; --done:#4FB3A9; --done-soft:#1C3A3B; --warn:#E3765F;
+    --heat0:#223052; --heat1:#5A4520; --heat2:#8C6524; --heat3:#C98A2A; --heat4:#F0A842;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1726; --surface:#17223A; --ink:#E6EAF1; --muted:#9AA6B8; --line:#2A3857;
+  --accent:#F0A842; --accent-soft:#3A3020; --done:#4FB3A9; --done-soft:#1C3A3B; --warn:#E3765F;
+  --heat0:#223052; --heat1:#5A4520; --heat2:#8C6524; --heat3:#C98A2A; --heat4:#F0A842;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Figtree,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:"Bricolage Grotesque",Figtree,system-ui,sans-serif;line-height:1.15;margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1040px;margin:0 auto;padding:28px 20px 64px}
+
+/* Hero: the route */
+.hero{display:grid;gap:18px;margin-bottom:22px}
+.hero-top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+.hero h1{font-size:clamp(1.9rem,4.5vw,2.8rem);font-weight:800;letter-spacing:-.02em}
+.hero p{margin:4px 0 0;color:var(--muted)}
+.sync{font-size:.85rem;color:var(--muted);display:flex;align-items:center;gap:8px}
+.sync::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.sync.ok::before{background:var(--done)}
+.sync.local::before{background:var(--accent)}
+.sync.err::before{background:var(--warn)}
+
+.route{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px 22px 18px;overflow-x:auto}
+.route-inner{position:relative;min-width:640px;height:118px}
+.track{position:absolute;left:0;right:0;top:46px;height:6px;border-radius:3px;background:var(--line)}
+.track-fill{position:absolute;left:0;top:46px;height:6px;border-radius:3px;background:var(--accent)}
+.node{position:absolute;top:38px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;width:110px;cursor:pointer;background:none;border:0;padding:0}
+.node .dot{width:22px;height:22px;border-radius:50%;background:var(--surface);border:3px solid var(--line);display:grid;place-items:center;transition:background .2s,border-color .2s}
+.node.done .dot{background:var(--done);border-color:var(--done)}
+.node.done .dot::after{content:"";width:7px;height:4px;border:2px solid #fff;border-top:0;border-right:0;transform:rotate(-45deg) translate(1px,-1px)}
+.node.late .dot{border-color:var(--warn)}
+.node .lbl{margin-top:8px;font-size:.75rem;line-height:1.25;text-align:center;color:var(--muted)}
+.node .lbl b{display:block;color:var(--ink);font-weight:600;font-size:.8rem}
+.node:nth-of-type(even) .lbl{order:-1;margin:0 0 8px}
+.node:nth-of-type(even){top:-8px}
+.today{position:absolute;top:30px;bottom:0;width:0;border-left:2px dashed var(--ink);opacity:.5}
+.today span{position:absolute;bottom:0;left:6px;font-size:.72rem;white-space:nowrap;color:var(--ink);font-weight:600}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px;overflow-x:auto;margin-bottom:22px;position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
+.tab{flex:1 0 auto;border:0;background:none;padding:9px 14px;border-radius:9px;cursor:pointer;color:var(--muted);font-weight:600;white-space:nowrap}
+.tab[aria-selected="true"]{background:var(--ink);color:var(--bg)}
+
+.grid{display:grid;gap:16px}
+.cols-3{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.cols-2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px}
+.panel h2{font-size:1.2rem;font-weight:700;margin-bottom:10px}
+.panel h3{font-size:1rem;font-weight:700;margin:14px 0 6px}
+.sub{color:var(--muted);font-size:.9rem;margin:0 0 12px}
+
+.stat .n{font-family:"Bricolage Grotesque",sans-serif;font-size:2.4rem;font-weight:800;letter-spacing:-.02em;line-height:1}
+.stat .n small{font-size:1rem;color:var(--muted);font-weight:500}
+.stat .k{color:var(--muted);font-size:.9rem;margin-top:6px}
+.bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin-top:12px}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:4px}
+.bar.teal i{background:var(--done)}
+
+.checks{list-style:none;margin:0;padding:0}
+.checks li{border-top:1px solid var(--line)}
+.checks li:first-child{border-top:0}
+.checks label{display:flex;gap:10px;align-items:flex-start;padding:8px 2px;cursor:pointer}
+.checks input{appearance:none;flex:0 0 18px;width:18px;height:18px;margin-top:3px;border:2px solid var(--muted);border-radius:5px;display:grid;place-items:center;cursor:pointer;background:var(--surface)}
+.checks input:checked{background:var(--done);border-color:var(--done)}
+.checks input:checked::after{content:"";width:8px;height:4px;border:2px solid #fff;border-top:0;border-right:0;transform:rotate(-45deg) translate(1px,-1px)}
+.checks input:checked + span{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--line)}
+.checks a{color:inherit}
+.tag{display:inline-block;font-size:.72rem;font-weight:600;padding:1px 7px;border-radius:999px;margin-left:6px;vertical-align:1px}
+.tag.E{background:var(--done-soft);color:var(--done)}
+.tag.M{background:var(--accent-soft);color:var(--accent)}
+.tag.H{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+
+.week{border:1px solid var(--line);border-radius:12px;background:var(--surface);margin-bottom:12px;overflow:hidden}
+.week summary{list-style:none;cursor:pointer;display:flex;gap:14px;align-items:center;padding:14px 18px}
+.week summary::-webkit-details-marker{display:none}
+.week .wk{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:1.05rem;min-width:84px}
+.week .dates{color:var(--muted);font-size:.88rem;flex:1}
+.week .cnt{font-size:.85rem;font-weight:600;color:var(--muted)}
+.week.current{border-color:var(--accent);box-shadow:inset 4px 0 0 var(--accent)}
+.week.complete .cnt{color:var(--done)}
+.week .body{padding:0 18px 12px}
+.phase-h{font-size:.95rem;color:var(--muted);font-weight:600;margin:22px 0 10px}
+
+.counter{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:600}
+.btn:hover{border-color:var(--ink)}
+.btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.btn.small{padding:4px 10px;font-size:.85rem}
+.btn.ghost{border-color:transparent;color:var(--muted)}
+.field{display:grid;gap:4px;font-size:.85rem;color:var(--muted)}
+.field input,.field select,.field textarea{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:8px 10px;color:var(--ink);font-size:.95rem;width:100%}
+.form{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));align-items:end}
+
+.heat{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,13px);gap:3px;overflow-x:auto;padding-bottom:4px}
+.heat i{width:13px;height:13px;border-radius:3px;background:var(--heat0)}
+.heat i[data-l="1"]{background:var(--heat1)}.heat i[data-l="2"]{background:var(--heat2)}.heat i[data-l="3"]{background:var(--heat3)}.heat i[data-l="4"]{background:var(--heat4)}
+.heat i.fut{opacity:.35}
+
+.pipeline{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.pill{border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:.85rem}
+.pill b{margin-left:4px}
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.92rem}
+th,td{text-align:left;padding:9px 8px;border-top:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:.82rem;border-top:0}
+td select{border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:4px 6px}
+.empty{color:var(--muted);padding:18px 0;text-align:center}
+.stage-Offer{color:var(--done);font-weight:600}
+.stage-Rejected{color:var(--muted)}
+.hint{font-size:.85rem;color:var(--muted)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <div class="hero-top">
+      <div>
+        <h1>Dhruv's switch: 10 LPA+ by January</h1>
+        <p id="heroLine">Sep 22, 2026 to joining in spring 2027</p>
+      </div>
+      <div class="sync local" id="sync">Saved in this browser</div>
+    </div>
+    <div class="route"><div class="route-inner" id="route"></div></div>
+  </header>
+
+  <nav class="tabs" role="tablist" id="tabs">
+    <button class="tab" role="tab" data-tab="overview" aria-selected="true">Overview</button>
+    <button class="tab" role="tab" data-tab="roadmap" aria-selected="false">Roadmap</button>
+    <button class="tab" role="tab" data-tab="leetcode" aria-selected="false">LeetCode</button>
+    <button class="tab" role="tab" data-tab="apps" aria-selected="false">Applications</button>
+    <button class="tab" role="tab" data-tab="skills" aria-selected="false">Resume &amp; skills</button>
+  </nav>
+
+  <main id="view"></main>
+</div>
+
+<script>
+/* ---------- Plan data ---------- */
+const START = new Date(2026, 8, 22);
+const END = new Date(2027, 3, 1);
+
+const MILESTONES = [
+  {d:[2026,8,28], t:"Resume live", s:"Resume, LinkedIn and Naukri updated"},
+  {d:[2026,9,26], t:"270 solved", s:"270 problems; e-commerce Dockerised with CI; 40 target companies listed"},
+  {d:[2026,10,16], t:"Start applying", s:"DP done; demo deployed; first mock; referrals and applications start"},
+  {d:[2026,11,13], t:"5+ processes", s:"320+ problems; 5+ active interview processes"},
+  {d:[2027,0,17], t:"Offers in hand", s:"350+ problems; final rounds done, offers in hand"},
+  {d:[2027,0,31], t:"Resign", s:"Written offer of 10 LPA+ accepted; resignation submitted (Feb is fine if the best offer lands then)"},
+  {d:[2027,3,1], t:"Join", s:"2-month notice complete; new role starts"}
+];
+
+const WEEKS = [
+  {id:"w1", name:"Week 1", from:[2026,8,22], to:[2026,8,28], phase:"Phase 1: Foundation", tasks:["Rewrite resume (summary, experience bullets, project metrics)","Update LinkedIn and Naukri to match","DSA: arrays, hashing, prefix sums, two pointers"]},
+  {id:"w2", name:"Week 2", from:[2026,8,29], to:[2026,9,5], phase:"Phase 1: Foundation", tasks:["DSA: sliding window, binary search (incl. on the answer)","Revise Node event loop, streams, worker threads"]},
+  {id:"w3", name:"Week 3", from:[2026,9,6], to:[2026,9,12], phase:"Phase 1: Foundation", tasks:["DSA: stacks, monotonic stack, linked lists","Dockerise the e-commerce backend (Dockerfile + compose with Postgres and Redis)"]},
+  {id:"w4", name:"Week 4", from:[2026,9,13], to:[2026,9,19], phase:"Phase 1: Foundation", tasks:["DSA: trees and BST","Add a GitHub Actions pipeline (lint, test, build)","Revise PostgreSQL indexing, transactions and Redis patterns"]},
+  {id:"w5", name:"Week 5", from:[2026,9,20], to:[2026,9,26], phase:"Phase 1: Foundation", tasks:["DSA: graphs (BFS/DFS, topo sort, Dijkstra, DSU)","Build the list of 40 target companies","Connect with engineers at target companies on LinkedIn"]},
+  {id:"w6", name:"Week 6", from:[2026,9,27], to:[2026,10,2], phase:"Phase 2: Depth", tasks:["DSA: DP 1D and 2D","LLD basics: SOLID and the patterns you've used (Strategy, Factory, Observer)"]},
+  {id:"w7", name:"Week 7", from:[2026,10,3], to:[2026,10,9], phase:"Phase 2: Depth", tasks:["DSA: DP on strings and knapsack","LLD: LRU cache, rate limiter, parking lot","Write out answers to the project deep-dive questions"]},
+  {id:"w8", name:"Week 8", from:[2026,10,10], to:[2026,10,16], phase:"Phase 2: Depth", tasks:["DSA: heaps, greedy, intervals, backtracking, tries","HLD: URL shortener, chat app, your chatbot platform","Deploy a public demo","First mock interview"]},
+  {id:"w9", name:"Week 9", from:[2026,10,17], to:[2026,10,23], phase:"Phase 2: Depth", tasks:["Start referral requests and applications (10–15 a week)","Mixed timed practice sets"]},
+  {id:"p3", name:"Interviews", from:[2026,10,24], to:[2027,0,17], phase:"Phase 3: Interview season", tasks:["Company-tagged problems for every company in the pipeline","Two mock interviews a week","Get first rounds scheduled before mid-December","Main push mid-January: resume, referrals and readiness at full strength","Log every interview question and fix gaps within 48 hours","Whiteboard the chatbot architecture in under 5 minutes"]},
+  {id:"p4", name:"Offer", from:[2027,0,18], to:[2027,0,31], phase:"Phase 4: Offer and resign", tasks:["Line up offers close together and negotiate","Decide in advance how to handle a counter-offer","Accept the offer in writing","Resign by email and agree the last working day"]},
+  {id:"p5", name:"Notice", from:[2027,1,1], to:[2027,2,31], phase:"Notice period", tasks:["Documented handover","Collect relieving and experience letters","Keep one backup process warm until joining","Solve 1 problem a day"]}
+];
+
+const WEEKLY = ["12–15 DSA problems, mostly medium, logged with pattern and trick","Re-solved 3 old problems from the log without help","Weekly contest attempted and upsolved","1 LLD or HLD design practised out loud","1 backend topic revised","10–15 applications and 5 referral requests (from Nov 16)","Application tracker updated; follow-ups sent","1–2 mock interviews (from Nov 10)"];
+
+const P = (n,name,d,slug)=>({n,name,d,slug});
+const PROBLEMS = [
+  {g:"Arrays, hashing, prefix sums", w:"Weeks 1–2", items:[P(238,"Product of Array Except Self","M","product-of-array-except-self"),P(128,"Longest Consecutive Sequence","M","longest-consecutive-sequence"),P(49,"Group Anagrams","M","group-anagrams"),P(347,"Top K Frequent Elements","M","top-k-frequent-elements"),P(560,"Subarray Sum Equals K","M","subarray-sum-equals-k"),P(53,"Maximum Subarray","M","maximum-subarray"),P(41,"First Missing Positive","H","first-missing-positive")]},
+  {g:"Two pointers and sliding window", w:"Weeks 1–2", items:[P(15,"3Sum","M","3sum"),P(11,"Container With Most Water","M","container-with-most-water"),P(3,"Longest Substring Without Repeating Characters","M","longest-substring-without-repeating-characters"),P(424,"Longest Repeating Character Replacement","M","longest-repeating-character-replacement"),P(438,"Find All Anagrams in a String","M","find-all-anagrams-in-a-string"),P(76,"Minimum Window Substring","H","minimum-window-substring"),P(239,"Sliding Window Maximum","H","sliding-window-maximum"),P(42,"Trapping Rain Water","H","trapping-rain-water")]},
+  {g:"Binary search", w:"Week 2", items:[P(33,"Search in Rotated Sorted Array","M","search-in-rotated-sorted-array"),P(153,"Find Minimum in Rotated Sorted Array","M","find-minimum-in-rotated-sorted-array"),P(875,"Koko Eating Bananas","M","koko-eating-bananas"),P(1011,"Capacity To Ship Packages Within D Days","M","capacity-to-ship-packages-within-d-days"),P(410,"Split Array Largest Sum","H","split-array-largest-sum"),P(4,"Median of Two Sorted Arrays","H","median-of-two-sorted-arrays")]},
+  {g:"Stacks", w:"Week 3", items:[P(155,"Min Stack","M","min-stack"),P(150,"Evaluate Reverse Polish Notation","M","evaluate-reverse-polish-notation"),P(739,"Daily Temperatures","M","daily-temperatures"),P(853,"Car Fleet","M","car-fleet"),P(84,"Largest Rectangle in Histogram","H","largest-rectangle-in-histogram")]},
+  {g:"Linked lists", w:"Week 3", items:[P(142,"Linked List Cycle II","M","linked-list-cycle-ii"),P(143,"Reorder List","M","reorder-list"),P(138,"Copy List with Random Pointer","M","copy-list-with-random-pointer"),P(146,"LRU Cache","M","lru-cache"),P(23,"Merge k Sorted Lists","H","merge-k-sorted-lists"),P(25,"Reverse Nodes in k-Group","H","reverse-nodes-in-k-group")]},
+  {g:"Trees and BST", w:"Week 4", items:[P(102,"Binary Tree Level Order Traversal","M","binary-tree-level-order-traversal"),P(199,"Binary Tree Right Side View","M","binary-tree-right-side-view"),P(543,"Diameter of Binary Tree","E","diameter-of-binary-tree"),P(98,"Validate Binary Search Tree","M","validate-binary-search-tree"),P(230,"Kth Smallest Element in a BST","M","kth-smallest-element-in-a-bst"),P(236,"Lowest Common Ancestor of a Binary Tree","M","lowest-common-ancestor-of-a-binary-tree"),P(105,"Construct Binary Tree from Preorder and Inorder Traversal","M","construct-binary-tree-from-preorder-and-inorder-traversal"),P(124,"Binary Tree Maximum Path Sum","H","binary-tree-maximum-path-sum"),P(297,"Serialize and Deserialize Binary Tree","H","serialize-and-deserialize-binary-tree")]},
+  {g:"Graphs", w:"Week 5", items:[P(200,"Number of Islands","M","number-of-islands"),P(994,"Rotting Oranges","M","rotting-oranges"),P(133,"Clone Graph","M","clone-graph"),P(417,"Pacific Atlantic Water Flow","M","pacific-atlantic-water-flow"),P(207,"Course Schedule","M","course-schedule"),P(210,"Course Schedule II","M","course-schedule-ii"),P(684,"Redundant Connection","M","redundant-connection"),P(743,"Network Delay Time","M","network-delay-time"),P(787,"Cheapest Flights Within K Stops","M","cheapest-flights-within-k-stops"),P(1584,"Min Cost to Connect All Points","M","min-cost-to-connect-all-points"),P(127,"Word Ladder","H","word-ladder"),P(329,"Longest Increasing Path in a Matrix","H","longest-increasing-path-in-a-matrix")]},
+  {g:"Dynamic programming", w:"Weeks 6–7", items:[P(198,"House Robber","M","house-robber"),P(213,"House Robber II","M","house-robber-ii"),P(322,"Coin Change","M","coin-change"),P(518,"Coin Change II","M","coin-change-ii"),P(62,"Unique Paths","M","unique-paths"),P(139,"Word Break","M","word-break"),P(300,"Longest Increasing Subsequence","M","longest-increasing-subsequence"),P(1143,"Longest Common Subsequence","M","longest-common-subsequence"),P(416,"Partition Equal Subset Sum","M","partition-equal-subset-sum"),P(5,"Longest Palindromic Substring","M","longest-palindromic-substring"),P(152,"Maximum Product Subarray","M","maximum-product-subarray"),P(309,"Best Time to Buy and Sell Stock with Cooldown","M","best-time-to-buy-and-sell-stock-with-cooldown"),P(72,"Edit Distance","M","edit-distance"),P(312,"Burst Balloons","H","burst-balloons")]},
+  {g:"Heaps, greedy and intervals", w:"Week 8", items:[P(215,"Kth Largest Element in an Array","M","kth-largest-element-in-an-array"),P(973,"K Closest Points to Origin","M","k-closest-points-to-origin"),P(621,"Task Scheduler","M","task-scheduler"),P(295,"Find Median from Data Stream","H","find-median-from-data-stream"),P(56,"Merge Intervals","M","merge-intervals"),P(435,"Non-overlapping Intervals","M","non-overlapping-intervals"),P(763,"Partition Labels","M","partition-labels"),P(55,"Jump Game","M","jump-game"),P(45,"Jump Game II","M","jump-game-ii"),P(134,"Gas Station","M","gas-station")]},
+  {g:"Backtracking", w:"Week 8", items:[P(78,"Subsets","M","subsets"),P(46,"Permutations","M","permutations"),P(39,"Combination Sum","M","combination-sum"),P(79,"Word Search","M","word-search"),P(131,"Palindrome Partitioning","M","palindrome-partitioning"),P(51,"N-Queens","H","n-queens")]},
+  {g:"Tries and bits", w:"Week 8", items:[P(208,"Implement Trie (Prefix Tree)","M","implement-trie-prefix-tree"),P(211,"Design Add and Search Words Data Structure","M","design-add-and-search-words-data-structure"),P(212,"Word Search II","H","word-search-ii"),P(338,"Counting Bits","E","counting-bits"),P(371,"Sum of Two Integers","M","sum-of-two-integers")]},
+  {g:"Design-style", w:"Any time", items:[P(380,"Insert Delete GetRandom O(1)","M","insert-delete-getrandom-o1"),P(981,"Time Based Key-Value Store","M","time-based-key-value-store"),P(355,"Design Twitter","M","design-twitter"),P(460,"LFU Cache","H","lfu-cache")]}
+];
+
+const RESUME = ["Rewrite the summary as backend + AI engineer positioning","Add 3–4 impact bullets to Associate Software Engineer","Add 2 bullets to the internship","Move the chatbot under Experience if it's company work","Add numbers to the chatbot (tokens saved, router accuracy, latency)","E-commerce: add scale, design details and a GitHub link","Mental-health AI: clarify 'decentralised' and evaluation","Merge or drop the blogging backend","Regroup skills; remove Eclipse, Visual Studio, EJS","Clickable GitHub, LinkedIn and LeetCode links in the header","One page, ATS-friendly PDF; Experience above Projects","LinkedIn and Naukri headline updated"];
+
+const TOPICS = [
+  {g:"AI engineering", items:["LLM evaluation (eval sets, LLM-as-judge, prompt regression tests)","LLM observability and cost control (tracing, token cost, prompt caching)","Model Context Protocol: build an MCP server","Agent safety (prompt injection, tool scopes, human approval)","Advanced RAG (hybrid search, re-ranking, retrieval evals)","Structured outputs with schema validation"]},
+  {g:"Cloud and DevOps", items:["Docker and Kubernetes basics","AWS core: EC2, S3, RDS, Lambda, SQS, IAM, CloudWatch","CI/CD with GitHub Actions","Observability: structured logs, metrics, OpenTelemetry"]},
+  {g:"Backend depth", items:["Queues and event-driven design (BullMQ, RabbitMQ, Kafka concepts)","Distributed systems: idempotency, retries, outbox pattern","PostgreSQL: query plans, partitioning, PgBouncer, row-level security","NestJS"]},
+  {g:"Broaden options", items:["Python + FastAPI basics","Working effectively with AI coding assistants"]},
+  {g:"Project upgrades", items:["Chatbot: add evaluation and tracing layer","Chatbot: expose tenant tools via an MCP server","Deploy on AWS with an ingestion queue and CI/CD"]}
+];
+
+const STAGES = ["Wishlist","Applied","Referred","OA","Interviewing","Final round","Offer","Rejected","Withdrawn"];
+const ACTIVE = ["Applied","Referred","OA","Interviewing","Final round"];
+const CHANNELS = ["Referral","LinkedIn","Wellfound","Instahyre","Cutshort","Naukri","Careers page","Direct outreach","Other"];
+
+/* ---------- Helpers ---------- */
+const $ = (s,r=document)=>r.querySelector(s);
+const toDate = a=>new Date(a[0],a[1],a[2]);
+const iso = d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+const fmt = d=>d.toLocaleDateString("en-IN",{day:"numeric",month:"short"});
+const today = ()=>{const d=new Date();d.setHours(0,0,0,0);return d};
+const dayDiff = (a,b)=>Math.round((b-a)/86400000);
+const esc = s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const mondayOf = d=>{const x=new Date(d);const k=(x.getDay()+6)%7;x.setDate(x.getDate()-k);x.setHours(0,0,0,0);return x};
+
+/* ---------- State ---------- */
+const DEFAULT = ()=>({v:1, updatedAt:0, solved:200, rating:"", done:{}, log:{}, apps:[]});
+let state = DEFAULT();
+let tab = "overview";
+
+function normalize(s){
+  const d = DEFAULT();
+  if(!s || typeof s!=="object") return d;
+  return {
+    v:1,
+    updatedAt: Number(s.updatedAt)||0,
+    solved: Number.isFinite(Number(s.solved)) ? Number(s.solved) : 200,
+    rating: s.rating ?? "",
+    done: (s.done && typeof s.done==="object") ? {...s.done} : {},
+    log: (s.log && typeof s.log==="object") ? {...s.log} : {},
+    apps: Array.isArray(s.apps) ? s.apps.map(a=>({...a})) : []
+  };
+}
+
+/* ---------- Persistence: account (db) with browser fallback ---------- */
+const LS_KEY = "dhruv-switch-tracker-v1";
+let ref = null, saveTimer = null, writing = Promise.resolve(), pending = false, lastSynced = "";
+
+function setSync(cls, text){ const el=$("#sync"); el.className="sync "+cls; el.textContent=text; }
+
+function loadLocal(){ try{ const r=localStorage.getItem(LS_KEY); return r?normalize(JSON.parse(r)):null; }catch{ return null; } }
+function saveLocal(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch{} }
+
+function commit(){
+  state.updatedAt = Date.now();
+  saveLocal();
+  render();
+  if(!ref){ setSync("local","Saved in this browser"); return; }
+  pending = true;
+  setSync("ok","Saving…");
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(()=>{
+    const snapshot = JSON.parse(JSON.stringify(state));
+    writing = writing.then(()=>ref.set(snapshot)).then(()=>{
+      lastSynced = JSON.stringify(snapshot);
+      pending = false;
+      setSync("ok","Saved to your account");
+    }).catch(()=>{
+      pending = false;
+      setSync("err","Couldn't save to your account. Saved in this browser.");
+    });
+  }, 700);
+}
+
+async function initStore(){
+  const local = loadLocal();
+  if(local) state = local;
+  render();
+  if(!window.claude || typeof window.claude.use!=="function"){ setSync("local","Saved in this browser"); return; }
+  try{
+    const [db,user] = await Promise.all([window.claude.use("db"), window.claude.use("user")]);
+    if(!db || !user){ setSync("local","Saved in this browser"); return; }
+    const uid = await user.id();
+    if(!uid){ setSync("local","Saved in this browser"); return; }
+    ref = db.doc("data/users/"+uid+"/state");
+    const snap = await ref.get();
+    const remote = snap.exists ? normalize(snap.data()) : null;
+    if(remote && (!local || remote.updatedAt >= local.updatedAt)){
+      state = remote; lastSynced = JSON.stringify(snap.data()); saveLocal(); render();
+      setSync("ok","Saved to your account");
+    } else {
+      setSync("ok","Syncing…");
+      await ref.set(JSON.parse(JSON.stringify(state)));
+      lastSynced = JSON.stringify(state);
+      setSync("ok","Saved to your account");
+    }
+    ref.onSnapshot(s=>{
+      if(!s.exists || s.metadata.hasPendingWrites || pending) return;
+      const raw = JSON.stringify(s.data());
+      if(raw===lastSynced) return;
+      const incoming = normalize(s.data());
+      if(incoming.updatedAt <= state.updatedAt) return;
+      lastSynced = raw; state = incoming; saveLocal(); render();
+    }, ()=>{ setSync("local","Live sync paused. Changes save in this browser."); });
+  }catch(e){
+    ref = null;
+    setSync("local","Saved in this browser");
+  }
+}
+
+/* ---------- Derived numbers ---------- */
+const allProblemKeys = ()=>PROBLEMS.flatMap(g=>g.items.map(p=>"p:"+p.n));
+const countDone = keys=>keys.filter(k=>state.done[k]).length;
+function weekKeys(w){ return w.tasks.map((_,i)=>`t:${w.id}:${i}`); }
+function currentWeek(){
+  const t = today();
+  return WEEKS.find(w=>t>=toDate(w.from) && t<=toDate(w.to)) || (t<toDate(WEEKS[0].from)?WEEKS[0]:WEEKS[WEEKS.length-1]);
+}
+function thisWeekKey(){ return iso(mondayOf(today())); }
+function logSum(from,to){ let s=0; for(const [k,v] of Object.entries(state.log)){ if(k>=from && k<=to) s+=Number(v)||0; } return s; }
+function streak(){
+  let n=0; const d=today();
+  if(!(Number(state.log[iso(d)])>0)) d.setDate(d.getDate()-1);
+  while(Number(state.log[iso(d)])>0){ n++; d.setDate(d.getDate()-1); }
+  return n;
+}
+
+/* ---------- Route ---------- */
+function renderRoute(){
+  const span = END-START, t=today();
+  const pct = d=>Math.max(0,Math.min(100,((d-START)/span)*100));
+  const tp = pct(t);
+  let html = `<div class="track"></div><div class="track-fill" style="width:${tp}%"></div>`;
+  MILESTONES.forEach((m,i)=>{
+    const d=toDate(m.d), done=!!state.done["m:"+i], late=!done && d<t;
+    html += `<button class="node ${done?"done":""} ${late?"late":""}" style="left:${Math.min(96,Math.max(4,pct(d)))}%" data-toggle="m:${i}" aria-pressed="${done}" title="${esc(m.s)}"><span class="dot"></span><span class="lbl"><b>${esc(m.t)}</b>${fmt(d)}</span></button>`;
+  });
+  html += `<div class="today" style="left:${tp}%"><span>Today</span></div>`;
+  $("#route").innerHTML = html;
+  const next = MILESTONES.map((m,i)=>({...m,i})).find(m=>!state.done["m:"+m.i]);
+  $("#heroLine").textContent = next
+    ? `Next: ${next.t} by ${fmt(toDate(next.d))} (${dayDiff(t,toDate(next.d))>=0?dayDiff(t,toDate(next.d))+" days left":Math.abs(dayDiff(t,toDate(next.d)))+" days overdue"})`
+    : "Every milestone done. Congratulations on the switch.";
+}
+
+/* ---------- Views ---------- */
+function checkItem(key,label,extra=""){
+  return `<li><label><input type="checkbox" data-toggle="${key}" ${state.done[key]?"checked":""}><span>${label}${extra}</span></label></li>`;
+}
+
+function viewOverview(){
+  const t=today(), cw=currentWeek(), ck=weekKeys(cw), wkKey=thisWeekKey();
+  const mon=mondayOf(t), sun=new Date(mon); sun.setDate(sun.getDate()+6);
+  const weekSolved=logSum(iso(mon),iso(sun));
+  const probs=allProblemKeys(), pd=countDone(probs);
+  const allTasks=WEEKS.flatMap(weekKeys), td=countDone(allTasks);
+  const active=state.apps.filter(a=>ACTIVE.includes(a.stage)).length;
+  const offers=state.apps.filter(a=>a.stage==="Offer");
+  const best=offers.reduce((m,a)=>Math.max(m,Number(a.ctc)||0),0);
+  const solvedPct=Math.min(100,((state.solved-200)/150)*100);
+  return `
+  <div class="grid cols-3">
+    <div class="panel stat"><div class="n">${state.solved}<small> / 350</small></div><div class="k">LeetCode problems solved</div><div class="bar"><i style="width:${Math.max(0,solvedPct)}%"></i></div>
+      <div class="counter" style="margin-top:12px"><button class="btn small" data-act="dec">−1</button><button class="btn small primary" data-act="inc">+1 solved today</button></div></div>
+    <div class="panel stat"><div class="n">${weekSolved}<small> this week</small></div><div class="k">Target 12–15 · streak ${streak()} day${streak()===1?"":"s"}</div><div class="bar teal"><i style="width:${Math.min(100,weekSolved/15*100)}%"></i></div></div>
+    <div class="panel stat"><div class="n">${active}<small> active</small></div><div class="k">${offers.length} offer${offers.length===1?"":"s"}${best?`; best ${best} LPA`:""} · ${state.apps.length} applications tracked</div><div class="bar"><i style="width:${Math.min(100,active/5*100)}%"></i></div></div>
+  </div>
+  <div class="grid cols-2" style="margin-top:16px">
+    <div class="panel"><h2>This week: ${esc(cw.name)}</h2><p class="sub">${fmt(toDate(cw.from))} to ${fmt(toDate(cw.to))} · ${esc(cw.phase)}</p>
+      <ul class="checks">${cw.tasks.map((x,i)=>checkItem(`t:${cw.id}:${i}`,esc(x))).join("")}</ul></div>
+    <div class="panel"><h2>Weekly checklist</h2><p class="sub">Resets every Monday. Week of ${fmt(mon)}.</p>
+      <ul class="checks">${WEEKLY.map((x,i)=>checkItem(`wk:${wkKey}:${i}`,esc(x))).join("")}</ul></div>
+  </div>
+  <div class="grid cols-3" style="margin-top:16px">
+    <div class="panel stat"><div class="n">${td}<small> / ${allTasks.length}</small></div><div class="k">Roadmap tasks done</div><div class="bar teal"><i style="width:${td/allTasks.length*100}%"></i></div></div>
+    <div class="panel stat"><div class="n">${pd}<small> / ${probs.length}</small></div><div class="k">Curated problems ticked</div><div class="bar"><i style="width:${pd/probs.length*100}%"></i></div></div>
+    <div class="panel stat"><div class="n">${countDone(RESUME.map((_,i)=>"r:"+i))}<small> / ${RESUME.length}</small></div><div class="k">Resume fixes done</div><div class="bar teal"><i style="width:${countDone(RESUME.map((_,i)=>"r:"+i))/RESUME.length*100}%"></i></div></div>
+  </div>`;
+}
+
+function viewRoadmap(){
+  const cw=currentWeek(); let lastPhase=""; let out="";
+  WEEKS.forEach(w=>{
+    if(w.phase!==lastPhase){ out+=`<h2 class="phase-h">${esc(w.phase)}</h2>`; lastPhase=w.phase; }
+    const keys=weekKeys(w), d=countDone(keys), complete=d===keys.length;
+    out+=`<details class="week ${w===cw?"current":""} ${complete?"complete":""}" ${w===cw?"open":""}>
+      <summary><span class="wk">${esc(w.name)}</span><span class="dates">${fmt(toDate(w.from))} – ${fmt(toDate(w.to))}${w===cw?" · current":""}</span><span class="cnt">${d}/${keys.length}</span></summary>
+      <div class="body"><ul class="checks">${w.tasks.map((x,i)=>checkItem(`t:${w.id}:${i}`,esc(x))).join("")}</ul></div></details>`;
+  });
+  out+=`<h2 class="phase-h">Milestones</h2><div class="panel"><ul class="checks">${MILESTONES.map((m,i)=>checkItem("m:"+i,`<b>${fmt(toDate(m.d))}</b>: ${esc(m.s)}`)).join("")}</ul></div>`;
+  return out;
+}
+
+function viewLeetcode(){
+  const t=today(); const cells=[]; const start=mondayOf(t); start.setDate(start.getDate()-7*17);
+  for(let i=0;i<18*7;i++){ const d=new Date(start); d.setDate(d.getDate()+i); const v=Number(state.log[iso(d)])||0; const l=v===0?0:v<2?1:v<3?2:v<5?3:4; cells.push(`<i data-l="${l}" class="${d>t?"fut":""}" title="${fmt(d)}: ${v} solved"></i>`); }
+  const groups = PROBLEMS.map(g=>{
+    const keys=g.items.map(p=>"p:"+p.n), d=countDone(keys);
+    return `<div class="panel"><div class="row"><h2 style="margin:0">${esc(g.g)}</h2><span class="hint">${esc(g.w)} · ${d}/${keys.length}</span></div>
+      <div class="bar teal" style="margin:10px 0 6px"><i style="width:${d/keys.length*100}%"></i></div>
+      <ul class="checks">${g.items.map(p=>checkItem("p:"+p.n,`${p.n}. <a href="https://leetcode.com/problems/${p.slug}/" target="_blank" rel="noopener">${esc(p.name)}</a>`,`<span class="tag ${p.d}">${p.d==="E"?"Easy":p.d==="M"?"Medium":"Hard"}</span>`)).join("")}</ul></div>`;
+  }).join("");
+  return `
+  <div class="grid cols-2">
+    <div class="panel"><h2>Problem count</h2><p class="sub">Use +1 each time you solve a problem; it feeds the heatmap and weekly total. Edit the total directly if it drifts from LeetCode.</p>
+      <div class="form">
+        <label class="field">Total solved<input type="number" min="0" id="solvedInput" value="${state.solved}"></label>
+        <label class="field">Contest rating<input type="number" min="0" id="ratingInput" value="${esc(state.rating)}" placeholder="e.g. 1600"></label>
+      </div>
+      <div class="counter" style="margin-top:12px"><button class="btn small" data-act="dec">−1</button><button class="btn small primary" data-act="inc">+1 solved today</button><span class="hint">Today: ${Number(state.log[iso(t)])||0}</span></div>
+    </div>
+    <div class="panel"><h2>Last 18 weeks</h2><p class="sub">Each square is a day; darker means more problems solved.</p><div class="heat">${cells.join("")}</div></div>
+  </div>
+  <p class="hint" style="margin:18px 2px 10px">Tick the curated problems as you solve them, including ones you'd already done before. Ticking doesn't change your total count.</p>
+  <div class="grid cols-2">${groups}</div>`;
+}
+
+function viewApps(){
+  const counts = STAGES.map(s=>({s,n:state.apps.filter(a=>a.stage===s).length})).filter(x=>x.n);
+  const rows = [...state.apps].sort((a,b)=>(b.date||"").localeCompare(a.date||"")).map(a=>`
+    <tr>
+      <td><b>${esc(a.company)}</b><br><span class="hint">${esc(a.role)}</span></td>
+      <td>${esc(a.channel)}</td>
+      <td><select data-stage="${esc(a.id)}" class="stage-${esc(a.stage)}" aria-label="Stage for ${esc(a.company)}">${STAGES.map(s=>`<option ${s===a.stage?"selected":""}>${s}</option>`).join("")}</select></td>
+      <td>${a.date?fmt(new Date(a.date+"T00:00")):""}</td>
+      <td>${a.ctc?esc(a.ctc)+" LPA":""}</td>
+      <td>${esc(a.notes)}</td>
+      <td><button class="btn small ghost" data-del="${esc(a.id)}" aria-label="Delete ${esc(a.company)}">Delete</button></td>
+    </tr>`).join("");
+  return `
+  <div class="panel"><h2>Add an application</h2>
+    <div class="form" id="appForm">
+      <label class="field">Company<input id="fCompany" required placeholder="Company name"></label>
+      <label class="field">Role<input id="fRole" placeholder="SDE-1 Backend"></label>
+      <label class="field">Channel<select id="fChannel">${CHANNELS.map(c=>`<option>${c}</option>`).join("")}</select></label>
+      <label class="field">Stage<select id="fStage">${STAGES.map(s=>`<option ${s==="Applied"?"selected":""}>${s}</option>`).join("")}</select></label>
+      <label class="field">Date<input id="fDate" type="date" value="${iso(today())}"></label>
+      <label class="field">CTC (LPA)<input id="fCtc" type="number" step="0.1" min="0" placeholder="Offered or expected"></label>
+      <label class="field" style="grid-column:1/-1">Notes<input id="fNotes" placeholder="Referrer, next round, follow-up date"></label>
+      <div><button class="btn primary" data-act="addApp">Add application</button></div>
+    </div>
+    <p class="hint" id="formMsg" hidden>Enter a company name to add the application.</p>
+  </div>
+  <div class="panel" style="margin-top:16px"><h2>Pipeline</h2>
+    <div class="pipeline">${counts.length?counts.map(c=>`<span class="pill">${c.s}<b>${c.n}</b></span>`).join(""):""}</div>
+    ${state.apps.length?`<div class="tbl-wrap"><table><thead><tr><th>Company</th><th>Channel</th><th>Stage</th><th>Date</th><th>CTC</th><th>Notes</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`
+      :`<p class="empty">No applications yet. Start adding them from Nov 16, or add wishlist companies now.</p>`}
+  </div>`;
+}
+
+function viewSkills(){
+  return `
+  <div class="grid cols-2">
+    <div class="panel"><h2>Resume fixes</h2><p class="sub">Finish these before sending any application.</p>
+      <ul class="checks">${RESUME.map((x,i)=>checkItem("r:"+i,esc(x))).join("")}</ul></div>
+    <div class="panel"><h2>Topics to explore</h2><p class="sub">About 4–5 hours a week, mostly on weekends.</p>
+      ${TOPICS.map((g,gi)=>`<h3>${esc(g.g)}</h3><ul class="checks">${g.items.map((x,i)=>checkItem(`s:${gi}:${i}`,esc(x))).join("")}</ul>`).join("")}</div>
+  </div>`;
+}
+
+function render(){
+  renderRoute();
+  document.querySelectorAll(".tab").forEach(b=>b.setAttribute("aria-selected", String(b.dataset.tab===tab)));
+  const v = {overview:viewOverview, roadmap:viewRoadmap, leetcode:viewLeetcode, apps:viewApps, skills:viewSkills}[tab]();
+  const open = [...document.querySelectorAll("details.week")].map(d=>d.open);
+  $("#view").innerHTML = v;
+  if(tab==="roadmap" && open.length){ document.querySelectorAll("details.week").forEach((d,i)=>{ if(open[i]!==undefined) d.open=open[i]; }); }
+}
+
+/* ---------- Events ---------- */
+document.addEventListener("click", e=>{
+  const tabBtn = e.target.closest("[data-tab]");
+  if(tabBtn){ tab=tabBtn.dataset.tab; render(); return; }
+  const node = e.target.closest("button[data-toggle]");
+  if(node){ const k=node.dataset.toggle; state.done[k]=!state.done[k]; if(!state.done[k]) delete state.done[k]; commit(); return; }
+  const act = e.target.closest("[data-act]");
+  if(act){
+    const a=act.dataset.act, k=iso(today());
+    if(a==="inc"){ state.solved++; state.log[k]=(Number(state.log[k])||0)+1; commit(); }
+    else if(a==="dec"){ if((Number(state.log[k])||0)>0){ state.log[k]--; if(!state.log[k]) delete state.log[k]; } state.solved=Math.max(0,state.solved-1); commit(); }
+    else if(a==="addApp"){
+      const company=$("#fCompany").value.trim();
+      if(!company){ $("#formMsg").hidden=false; $("#fCompany").focus(); return; }
+      state.apps.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), company, role:$("#fRole").value.trim(), channel:$("#fChannel").value, stage:$("#fStage").value, date:$("#fDate").value, ctc:$("#fCtc").value, notes:$("#fNotes").value.trim()});
+      commit();
+    }
+    return;
+  }
+  const del = e.target.closest("[data-del]");
+  if(del){ state.apps = state.apps.filter(a=>a.id!==del.dataset.del); commit(); }
+});
+document.addEventListener("change", e=>{
+  const t=e.target;
+  if(t.matches('input[type="checkbox"][data-toggle]')){ const k=t.dataset.toggle; if(t.checked) state.done[k]=true; else delete state.done[k]; commit(); return; }
+  if(t.matches("select[data-stage]")){ const a=state.apps.find(x=>x.id===t.dataset.stage); if(a){ a.stage=t.value; commit(); } return; }
+  if(t.id==="solvedInput"){ const n=parseInt(t.value,10); if(Number.isFinite(n)&&n>=0){ state.solved=n; commit(); } return; }
+  if(t.id==="ratingInput"){ state.rating=t.value; commit(); }
+});
+document.addEventListener("keydown", e=>{
+  if(e.key==="Enter" && e.target.closest("#appForm") && e.target.tagName==="INPUT"){ e.preventDefault(); $('[data-act="addApp"]').click(); }
+});
+
+initStore();
+</script>
+</body>
+</html>

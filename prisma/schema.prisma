@@ -1,0 +1,92 @@
+// Prisma 7 schema.
+//
+// Two things differ from older Prisma tutorials:
+//   1. The generator is `prisma-client` (not the deprecated `prisma-client-js`)
+//      and `output` is required, so the client is generated into src/generated.
+//   2. The datasource block has no `url`. In Prisma 7 the CLI reads the
+//      connection string from prisma7.config.ts, and the app passes one to the
+//      driver adapter at runtime (see src/lib/prisma.ts).
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Auth.js adapter models. Shapes are fixed by @auth/prisma-adapter: renaming a
+// field breaks the adapter, so the snake_case OAuth token columns stay as-is.
+// ---------------------------------------------------------------------------
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+
+  // One tracker per user. Optional because the row is only created on first save.
+  trackerState TrackerState?
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ---------------------------------------------------------------------------
+// Application data
+// ---------------------------------------------------------------------------
+
+model TrackerState {
+  userId String @id
+
+  // The whole TrackerState blob. Validated with Zod at the API boundary, so
+  // Postgres only has to store it, not understand it.
+  data Json
+
+  // The client's own `updatedAt` (ms epoch). BigInt because ms epoch values
+  // exceed a 32-bit int. This is what last-writer-wins compares.
+  updatedAt BigInt
+
+  // Server-side write time, for debugging. Not used for conflict resolution.
+  savedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
